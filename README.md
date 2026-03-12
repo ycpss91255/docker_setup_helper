@@ -7,6 +7,13 @@
 
 [English] | [繁體中文](./README.zh-TW.md)
 
+> **TL;DR** — Modular Bash toolkit that auto-detects system params (UID/GID, GPU, architecture, workspace) and generates `.env` for Docker Compose builds. 100% test coverage with Bats + Kcov.
+>
+> ```bash
+> ./src/setup.sh        # Generate .env
+> ./ci.sh               # Run tests locally
+> ```
+
 A modular Docker environment setup toolkit that automates system parameter detection and `.env` generation for Docker container builds. Designed to replace traditional `get_param.sh` scripts with a testable, extensible architecture.
 
 ## 🌟 Features
@@ -129,6 +136,46 @@ All scripts use the `BASH_SOURCE` guard pattern for testability:
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
     main "$@"
 fi
+```
+
+## Architecture
+
+### Detection & Generation Flow
+
+```mermaid
+graph LR
+    A["setup.sh"]:::entry
+
+    A --> B["detect_user_info\nUID / GID / username / group"]:::detect
+    A --> C["detect_hardware\nx86_64 / aarch64"]:::detect
+    A --> D["detect_gpu\nnvidia-smi check"]:::detect
+    A --> E["detect_docker_hub_user\ndocker info"]:::detect
+    A --> F["detect_image_name\ndirectory name inference"]:::detect
+    A --> G["detect_ws_path\n3-strategy workspace search"]:::detect
+
+    B --> H[".env"]:::output
+    C --> H
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+
+    classDef entry fill:#1a5276,color:#fff,stroke:#2980b9
+    classDef detect fill:#8B6914,color:#fff,stroke:#c8960c
+    classDef output fill:#1e8449,color:#fff,stroke:#27ae60
+```
+
+### CI Pipeline
+
+```mermaid
+graph LR
+    S["ci.sh"]:::entry --> SC["ShellCheck\nlint all .sh files"]:::step
+    SC --> BT["Bats\n80 unit tests"]:::step
+    BT --> KC["Kcov\ncoverage report"]:::step
+    KC --> CC["Codecov\nupload"]:::step
+
+    classDef entry fill:#1a5276,color:#fff,stroke:#2980b9
+    classDef step fill:#8B6914,color:#fff,stroke:#c8960c
 ```
 
 ## 📄 License

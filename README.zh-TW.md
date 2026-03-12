@@ -7,6 +7,13 @@
 
 [English](./README.md) | [繁體中文]
 
+> **TL;DR** — 模組化 Bash 工具組，自動偵測系統參數（UID/GID、GPU、架構、工作區）並產生 `.env` 供 Docker Compose 建置使用。100% 測試覆蓋率（Bats + Kcov）。
+>
+> ```bash
+> ./src/setup.sh        # 產生 .env
+> ./ci.sh               # 在地執行測試
+> ```
+
 模組化的 Docker 環境設定工具組，自動偵測系統參數並產生 `.env` 檔案，供 Docker 容器建置使用。設計用來取代傳統的 `get_param.sh`，具備可測試、可擴展的架構。
 
 ## 🌟 特色
@@ -129,6 +136,46 @@ source "${DYNAMIC_PATH}"
 if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
     main "$@"
 fi
+```
+
+## 架構
+
+### 偵測與產生流程
+
+```mermaid
+graph LR
+    A["setup.sh"]:::entry
+
+    A --> B["detect_user_info\nUID / GID / username / group"]:::detect
+    A --> C["detect_hardware\nx86_64 / aarch64"]:::detect
+    A --> D["detect_gpu\nnvidia-smi check"]:::detect
+    A --> E["detect_docker_hub_user\ndocker info"]:::detect
+    A --> F["detect_image_name\n目錄名稱推導"]:::detect
+    A --> G["detect_ws_path\n三策略工作區搜尋"]:::detect
+
+    B --> H[".env"]:::output
+    C --> H
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+
+    classDef entry fill:#1a5276,color:#fff,stroke:#2980b9
+    classDef detect fill:#8B6914,color:#fff,stroke:#c8960c
+    classDef output fill:#1e8449,color:#fff,stroke:#27ae60
+```
+
+### CI 流程
+
+```mermaid
+graph LR
+    S["ci.sh"]:::entry --> SC["ShellCheck\n語法檢查所有 .sh"]:::step
+    SC --> BT["Bats\n80 個單元測試"]:::step
+    BT --> KC["Kcov\n覆蓋率報告"]:::step
+    KC --> CC["Codecov\n上傳"]:::step
+
+    classDef entry fill:#1a5276,color:#fff,stroke:#2980b9
+    classDef step fill:#8B6914,color:#fff,stroke:#c8960c
 ```
 
 ## 📄 授權
