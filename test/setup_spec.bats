@@ -183,20 +183,13 @@ esac'
     assert_equal "${_result}" "${_ws_dir}"
 }
 
-@test "detect_ws_path strategy 2: finds _ws sibling directory" {
-    local _ws_dir="${TEMP_DIR}/myproject_ws"
-    local _proj_dir="${TEMP_DIR}/docker_ros"
-    mkdir -p "${_ws_dir}" "${_proj_dir}"
-    local _result
-    detect_ws_path _result "${_proj_dir}"
-    assert_equal "${_result}" "${_ws_dir}"
-}
-
-@test "detect_ws_path strategy 3: prompts when no _ws found" {
+@test "detect_ws_path strategy 2: prompts when no _ws found" {
     local _expected="${TEMP_DIR}/prompted_workspace"
+    local _no_ws="${TEMP_DIR}/no_ws_here"
+    mkdir -p "${_no_ws}"
     _read_ws_path() { echo "${_expected}"; }
     local _result
-    detect_ws_path _result "${TEMP_DIR}/no_ws_here"
+    detect_ws_path _result "${_no_ws}"
     assert [ -d "${_expected}" ]
     assert_equal "${_result}" "${_expected}"
 }
@@ -286,5 +279,48 @@ EOF
 
 @test "main returns error when --base-path value is missing" {
     run bash -c "source /source/src/setup.sh; main --base-path"
+    assert_failure
+}
+
+# ════════════════════════════════════════════════════════════════════
+# _msg (i18n)
+# ════════════════════════════════════════════════════════════════════
+
+@test "_msg returns English messages by default" {
+    _LANG="en"
+    assert_equal "$(_msg ws_not_found)" "Workspace not found, please enter manually"
+    assert_equal "$(_msg ws_prompt)"    "Enter workspace path"
+    assert_equal "$(_msg env_done)"     ".env updated"
+    assert_equal "$(_msg env_comment)"  "Auto-detected fields, do not edit manually. Edit WS_PATH if needed"
+    assert_equal "$(_msg unknown_arg)"  "Unknown argument"
+}
+
+@test "_msg returns Chinese messages when _LANG=zh" {
+    _LANG="zh"
+    assert_equal "$(_msg ws_not_found)" "工作區路徑未找到，請手動輸入"
+    assert_equal "$(_msg ws_prompt)"    "請輸入工作區路徑"
+    assert_equal "$(_msg env_done)"     ".env 更新完成"
+    assert_equal "$(_msg env_comment)"  "自動偵測欄位請勿手動修改，如需變更 WS_PATH 可直接編輯此檔案"
+    assert_equal "$(_msg unknown_arg)"  "未知參數"
+}
+
+# ════════════════════════════════════════════════════════════════════
+# main --lang
+# ════════════════════════════════════════════════════════════════════
+
+@test "main --lang zh sets Chinese messages" {
+    local _ws="${TEMP_DIR}/test_ws"
+    mkdir -p "${_ws}"
+    run bash -c "
+        source /source/src/setup.sh
+        detect_ws_path() { local -n _o=\$1; _o='${_ws}'; }
+        main --base-path '${TEMP_DIR}' --lang zh
+    "
+    assert_success
+    assert_output --partial ".env 更新完成"
+}
+
+@test "main --lang requires a value" {
+    run bash -c "source /source/src/setup.sh; main --lang"
     assert_failure
 }
