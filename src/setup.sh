@@ -281,6 +281,18 @@ main() {
     detect_gpu             gpu_enabled
     detect_image_name      image_name "${_base_path}"
 
+    # Fallback: read IMAGE_NAME from .env.example if detection returned unknown
+    if [[ "${image_name}" == "unknown" ]]; then
+        local _env_example="${_base_path}/.env.example"
+        if [[ -f "${_env_example}" ]]; then
+            local _example_name=""
+            _example_name="$(grep -m1 '^IMAGE_NAME=' "${_env_example}" | cut -d= -f2)"
+            if [[ -n "${_example_name}" && "${_example_name}" != "unknown" ]]; then
+                image_name="${_example_name}"
+            fi
+        fi
+    fi
+
     if [[ -z "${ws_path}" ]] || [[ ! -d "${ws_path}" ]]; then
         detect_ws_path ws_path "${_base_path}"
     fi
